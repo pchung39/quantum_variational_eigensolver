@@ -1,10 +1,19 @@
 # playing with Hamiltonians and testing out classical eigensolver algorithm
 
+# TODO: cleanup imports
+
 import numpy as np
 from random import random
 from scipy.optimize import minimize
 import math
-
+import pennylane as qml
+from pennylane import numpy as np
+from qiskit.extensions import HamiltonianGate
+import numpy as np
+import itertools
+from itertools import product
+from operator import matmul
+import functools
 from qiskit import *
 from qiskit.circuit.library.standard_gates import U2Gate
 from qiskit.aqua.operators import WeightedPauliOperator
@@ -44,6 +53,50 @@ Classical Model
 Quantum Model
 '''
 
+def decompose_hamiltonian(H):
+    n = int(np.log2(len(H)))
+    N = 2 ** n
+
+    if H.shape != (N, N):
+        raise ValueError(
+            "The Hamiltonian should have shape (2**n, 2**n), for any qubit number n>=1"
+        )
+
+    if not np.allclose(H, H.conj().T):
+        raise ValueError("The Hamiltonian is not Hermitian")
+
+    paulis = [qml.Identity, qml.PauliX, qml.PauliY, qml.PauliZ]
+    obs = []
+    coeffs = []
+
+    for term in itertools.product(paulis, repeat=n):
+        matrices = [i._matrix() for i in term]
+        coeff = np.trace(functools.reduce(np.kron, matrices) @ H) / N
+        coeff = np.real_if_close(coeff).item()
+
+        if not np.allclose(coeff, 0):
+            coeffs.append(coeff)
+
+            if not all(t is qml.Identity for t in term):
+                obs.append(
+                    functools.reduce(
+                        matmul,
+                        [t(i) for i, t in enumerate(term) if t is not qml.Identity],
+                    )
+                )
+            else:
+                obs.append(functools.reduce(matmul, [t(i) for i, t in enumerate(term)]))
+
+    return coeffs, obs
+
+
+
+# a = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
+# a = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+
+# coeffs, obs = decompose_hamiltonian(a)
+# print(coeffs, obs)
+
 def quantum_state_preparation(circuit):
     #q = circuit.qregs[0] # q is the quantum register where the info about qubits is stored
     # circuit.rx(parameters[0], q[0]) # q[0] is our one and only qubit XD
@@ -55,14 +108,14 @@ def quantum_state_preparation(circuit):
     '''
     # first parameter is RX angle
     # can use np format: np.array([np.pi, np.pi])
-    circuit.rx(-math.pi/2,0)
-    circuit.rx(-math.pi/2,1)
+    circuit.rx(0,0)
+    circuit.rx(0,1)
     
     # circuit.cx(1,0)
     circuit.h(0)
     circuit.cx(0,1)
     circuit.h(1)
-    # circuit.cx(1,0)
+    circuit.cx(1,0)
 
     circuit.barrier()
 
@@ -100,8 +153,8 @@ def vqe_circuit(measure):
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     elif measure == 'X':
-        circuit.ry(-math.pi/2, q[0])
-        circuit.ry(-math.pi/2, q[1])
+        circuit.ry(math.pi/2, q[0])
+        circuit.ry(math.pi/2, q[1])
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     elif measure == 'Y':
@@ -184,7 +237,7 @@ def quantum_module(parameters, measure):
     elif measure == 'XX':
         expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
     elif measure == "YY":
-        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
+        expected_value = (-counts_00 + counts_01 + counts_10 - counts_11) / shots
     elif measure == "II":
         expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
     else:
@@ -242,8 +295,14 @@ def vqe(parameters):
     
     # summing the measurement results
     classical_adder = quantum_module_I + quantum_module_Z + quantum_module_X + quantum_module_Y
-    print("Added values: ", classical_adder)
+    print("Measured ground state: ", classical_adder)
     return classical_adder
+
+#[0.5, -0.5, -0.5, 0.5] 
+#[Tensor(Identity(wires=[0]), Identity(wires=[1])), 
+# Tensor(PauliX(wires=[0]), PauliX(wires=[1])), 
+# Tensor(PauliY(wires=[0]), PauliY(wires=[1])), 
+# Tensor(PauliZ(wires=[0]), PauliZ(wires=[1]))]
 
 
 a, b, c, d = (0.5, 0.5, -0.5, -0.5)
