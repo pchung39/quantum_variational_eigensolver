@@ -3,6 +3,7 @@
 import numpy as np
 from random import random
 from scipy.optimize import minimize
+import math
 
 from qiskit import *
 from qiskit.circuit.library.standard_gates import U2Gate
@@ -54,14 +55,14 @@ def quantum_state_preparation(circuit):
     '''
     # first parameter is RX angle
     # can use np format: np.array([np.pi, np.pi])
-    circuit.rx(0,0)
-    circuit.rx(0,1)
+    circuit.rx(-math.pi/2,0)
+    circuit.rx(-math.pi/2,1)
     
     # circuit.cx(1,0)
     circuit.h(0)
     circuit.cx(0,1)
     circuit.h(1)
-    circuit.cx(1,0)
+    # circuit.cx(1,0)
 
     circuit.barrier()
 
@@ -99,13 +100,13 @@ def vqe_circuit(measure):
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     elif measure == 'X':
-        circuit.u2(0, np.pi, q[0])
-        circuit.u2(0, np.pi, q[1])
+        circuit.ry(-math.pi/2, q[0])
+        circuit.ry(-math.pi/2, q[1])
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     elif measure == 'Y':
-        circuit.u2(0, np.pi/2, q[0])
-        circuit.u2(0, np.pi/2, q[1])
+        circuit.rx(math.pi/2, q[0])
+        circuit.rx(math.pi/2, q[1])
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     else:
@@ -126,13 +127,17 @@ def vqe_circuit(measure):
 def quantum_module(parameters, measure):
     # measure
     if measure == 'II':
+        print("Expectation value for pauli matrix ({}): {}".format(measure, "1"))
         return 1
     elif measure == 'ZZ':
-        circuit = vqe_circuit(parameters, 'Z')
+        #circuit = vqe_circuit(parameters, 'Z')
+        circuit = vqe_circuit('Z')
     elif measure == 'XX':
-        circuit = vqe_circuit(parameters, 'X')
+        #circuit = vqe_circuit(parameters, 'X')
+        circuit = vqe_circuit('X')
     elif measure == 'YY':
-        circuit = vqe_circuit(parameters, 'Y')
+        #circuit = vqe_circuit(parameters, 'Y')
+        circuit = vqe_circuit('Y')
     else:
         raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')
     
@@ -152,20 +157,41 @@ def quantum_module(parameters, measure):
     #         sign = -1
     #     expectation_value += sign * counts[measure_result] / shots
 
+    if counts.get('00'):
+        counts_00 = counts['00']
+    else:
+        counts_00 = 0
 
+    if counts.get('01'):
+        counts_01 = counts['01']
+    else:
+        counts_01 = 0    
+
+    if counts.get('10'):
+        counts_10 = counts['10']
+    else:
+        counts_10 = 0
+
+    if counts.get('11'):
+        counts_11 = counts['11']
+    else:
+        counts_11 = 0
+
+
+    print("COUNTS: ", counts)
     if measure == 'ZZ':
-        expected_value = (counts['00'] - counts['01'] - counts['10'] + counts['11']) / num_shots
+        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
     elif measure == 'XX':
-        expected_value = (counts['00'] + counts['01'] + counts['10'] + counts['11']) / num_shots
+        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
     elif measure == "YY":
-        expected_value = (counts['00'] + counts['01'] + counts['10'] + counts['11']) / num_shots
+        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
     elif measure == "II":
-        expected_value = (counts['00'] + counts['01'] + counts['10'] + counts['11']) / num_shots
+        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
     else:
         raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')    
 
-    print("Expectation value for paul matrix ({}): {}".format(measure,m expected_value))
-    return expectation_value
+    print("Expectation value for pauli matrix ({}): {}".format(measure,expected_value))
+    return expected_value
 
 def pauli_operator_to_dict(pauli_operator):
     """
@@ -205,9 +231,13 @@ def vqe(parameters):
 
     pauli_dict = pauli_operator_to_dict(H)        
     # quantum_modules
+    print("MEASURE 'II'")
     quantum_module_I = pauli_dict['II'] * quantum_module(parameters, 'II')
+    print("MEASURE 'ZZ'")
     quantum_module_Z = pauli_dict['ZZ'] * quantum_module(parameters, 'ZZ')
+    print("MEASURE 'XX'")
     quantum_module_X = pauli_dict['XX'] * quantum_module(parameters, 'XX')
+    print("MEASURE 'YY'")
     quantum_module_Y = pauli_dict['YY'] * quantum_module(parameters, 'YY')
     
     # summing the measurement results
