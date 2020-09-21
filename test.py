@@ -97,7 +97,7 @@ def decompose_hamiltonian(H):
 # coeffs, obs = decompose_hamiltonian(a)
 # print(coeffs, obs)
 
-def quantum_state_preparation(circuit):
+def quantum_state_preparation(angle, circuit):
     #q = circuit.qregs[0] # q is the quantum register where the info about qubits is stored
     # circuit.rx(parameters[0], q[0]) # q[0] is our one and only qubit XD
     # circuit.ry(parameters[1], q[0])
@@ -108,32 +108,19 @@ def quantum_state_preparation(circuit):
     '''
     # first parameter is RX angle
     # can use np format: np.array([np.pi, np.pi])
-    circuit.rx(0,0)
-    circuit.rx(0,1)
-    
-    # circuit.cx(1,0)
+
+    circuit.rx(angle, 0)
+    circuit.ry(np.pi/2, 0)
     circuit.h(0)
-    circuit.cx(0,1)
-    circuit.h(1)
-    circuit.cx(1,0)
+    circuit.cx(0,1) 
+    circuit.h(1) 
+    circuit.cx(1,0) 
 
-    circuit.barrier()
-
-    # '''
-    # Hamiltonian decomposition rotations (rotations are regulated by the decomposition)
-    # '''
-    # circuit.rx(0,0)
-    # circuit.rx(0,0)
-
-    # circuit.ry(0,1)
-    # circuit.ry(0,1)
-    
-    # circuit.barrier()
     return circuit
 
 
 
-def vqe_circuit(measure):
+def vqe_circuit(angle, measure):
     """
     Creates a device ansatz circuit for optimization.
     :param parameters_array: list of parameters for constructing ansatz state that should be optimized.
@@ -145,7 +132,7 @@ def vqe_circuit(measure):
     circuit = QuantumCircuit(q, c)
 
     # quantum state preparation
-    circuit = quantum_state_preparation(circuit)
+    circuit = quantum_state_preparation(angle, circuit)
 
     # measurement
     # this is where you rotate either on the x or y axis and then measure 
@@ -153,8 +140,8 @@ def vqe_circuit(measure):
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     elif measure == 'X':
-        circuit.ry(math.pi/2, q[0])
-        circuit.ry(math.pi/2, q[1])
+        circuit.ry(-math.pi/2, q[0])
+        circuit.ry(-math.pi/2, q[1])
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     elif measure == 'Y':
@@ -177,20 +164,20 @@ def vqe_circuit(measure):
 # plt.show()
 
 
-def quantum_module(parameters, measure):
+def quantum_module(angle, measure):
     # measure
     if measure == 'II':
         print("Expectation value for pauli matrix ({}): {}".format(measure, "1"))
         return 1
     elif measure == 'ZZ':
         #circuit = vqe_circuit(parameters, 'Z')
-        circuit = vqe_circuit('Z')
+        circuit = vqe_circuit(angle,'Z')
     elif measure == 'XX':
         #circuit = vqe_circuit(parameters, 'X')
-        circuit = vqe_circuit('X')
+        circuit = vqe_circuit(angle,'X')
     elif measure == 'YY':
         #circuit = vqe_circuit(parameters, 'Y')
-        circuit = vqe_circuit('Y')
+        circuit = vqe_circuit(angle,'Y')
     else:
         raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')
     
@@ -200,7 +187,6 @@ def quantum_module(parameters, measure):
     job = execute(circuit, backend, shots=shots)
     result = job.result()
     counts = result.get_counts()
-    plot_histogram(counts)
     
     # expectation value estimation from counts
     # expectation_value = 0
@@ -211,35 +197,35 @@ def quantum_module(parameters, measure):
     #     expectation_value += sign * counts[measure_result] / shots
 
     if counts.get('00'):
-        counts_00 = counts['00']
+        counts_00 = counts['00']/shots
     else:
         counts_00 = 0
 
     if counts.get('01'):
-        counts_01 = counts['01']
+        counts_01 = counts['01']/shots
     else:
         counts_01 = 0    
 
     if counts.get('10'):
-        counts_10 = counts['10']
+        counts_10 = counts['10']/shots
     else:
         counts_10 = 0
 
     if counts.get('11'):
-        counts_11 = counts['11']
+        counts_11 = counts['11']/shots
     else:
         counts_11 = 0
 
 
     print("COUNTS: ", counts)
     if measure == 'ZZ':
-        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
+        expected_value = counts_00 - counts_01 - counts_10 + counts_11
     elif measure == 'XX':
-        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
+        expected_value = counts_00 + counts_01 + counts_10 + counts_11
     elif measure == "YY":
-        expected_value = (-counts_00 + counts_01 + counts_10 - counts_11) / shots
+        expected_value = counts_00 + counts_01 + counts_10 + counts_11
     elif measure == "II":
-        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
+        expected_value = counts_00 + counts_01 + counts_10 + counts_11
     else:
         raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')    
 
@@ -280,18 +266,18 @@ def hamiltonian_operator(a, b, c, d):
     }
     return WeightedPauliOperator.from_dict(pauli_dict)
 
-def vqe(parameters):
+def vqe(angle):
 
     pauli_dict = pauli_operator_to_dict(H)        
     # quantum_modules
     print("MEASURE 'II'")
-    quantum_module_I = pauli_dict['II'] * quantum_module(parameters, 'II')
+    quantum_module_I = pauli_dict['II'] * quantum_module(angle, 'II')
     print("MEASURE 'ZZ'")
-    quantum_module_Z = pauli_dict['ZZ'] * quantum_module(parameters, 'ZZ')
+    quantum_module_Z = pauli_dict['ZZ'] * quantum_module(angle, 'ZZ')
     print("MEASURE 'XX'")
-    quantum_module_X = pauli_dict['XX'] * quantum_module(parameters, 'XX')
+    quantum_module_X = pauli_dict['XX'] * quantum_module(angle, 'XX')
     print("MEASURE 'YY'")
-    quantum_module_Y = pauli_dict['YY'] * quantum_module(parameters, 'YY')
+    quantum_module_Y = pauli_dict['YY'] * quantum_module(angle, 'YY')
     
     # summing the measurement results
     classical_adder = quantum_module_I + quantum_module_Z + quantum_module_X + quantum_module_Y
@@ -310,11 +296,23 @@ a, b, c, d = (0.5, 0.5, -0.5, -0.5)
 H = hamiltonian_operator(a, b, c, d)
 print("H: ", H.print_details())
 parameters_array = np.array([np.pi, np.pi])
-test_vqe = vqe(parameters_array)
 
+angle_range = np.linspace(0.0, 2 * np.pi, 20)
+print("range: ", angle_range)
+data = []
+for a in angle_range: 
+    print("Angle: ", a)
+    test_vqe = vqe(a)
+    data.append(test_vqe)
+    print("\n\n")
 
+print("DATA: ", data)
+import matplotlib.pyplot as plt
+plt.xlabel('Angle [radians]')
+plt.ylabel('Expectation value')
+plt.plot(angle_range, data)
+plt.show()
 # tol = 1e-3 # tolerance for optimization precision.
-
 # vqe_result = minimize(vqe, parameters_array, method="Powell", tol=tol)
 # print('The exact ground state energy is: {}'.format(reference_energy))
 # print('The estimated ground state energy from VQE algorithm is: {}'.format(vqe_result.fun))
