@@ -6,8 +6,8 @@ import numpy as np
 from random import random
 from scipy.optimize import minimize
 import math
-import pennylane as qml
-from pennylane import numpy as np
+# import pennylane as qml
+# from pennylane import numpy as np
 from qiskit.extensions import HamiltonianGate
 import numpy as np
 import itertools
@@ -108,10 +108,10 @@ def quantum_state_preparation(angle, circuit):
     '''
     # first parameter is RX angle
     # can use np format: np.array([np.pi, np.pi])
-    circuit.rx(angle, 0)
     circuit.h(0)
     circuit.cx(0,1)
-    circuit.h(1)
+    circuit.rx(angle, 0)
+
     return circuit
 
 
@@ -136,13 +136,13 @@ def vqe_circuit(angle, measure):
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     elif measure == 'X':
-        circuit.ry(-math.pi/2, q[0])
-        circuit.ry(-math.pi/2, q[1])
+        circuit.ry(-np.pi/2, q[0])
+        circuit.ry(-np.pi/2, q[1])
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     elif measure == 'Y':
-        circuit.rx(math.pi/2, q[0])
-        circuit.rx(math.pi/2, q[1])
+        circuit.rx(np.pi/2, q[0])
+        circuit.rx(np.pi/2, q[1])
         circuit.measure(q[0], c[0])
         circuit.measure(q[1], c[1])
     else:
@@ -165,19 +165,16 @@ def quantum_module(angle, measure):
     if measure == 'II':
         return 1
     elif measure == 'ZZ':
-        #circuit = vqe_circuit(parameters, 'Z')
         circuit = vqe_circuit(angle,'Z')
     elif measure == 'XX':
-        #circuit = vqe_circuit(parameters, 'X')
         circuit = vqe_circuit(angle,'X')
     elif measure == 'YY':
-        #circuit = vqe_circuit(parameters, 'Y')
         circuit = vqe_circuit(angle,'Y')
     else:
         raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')
     
     # TODO: tweak this to see if values change?
-    shots = 1000
+    shots = 10000
     backend = BasicAer.get_backend('qasm_simulator')
     job = execute(circuit, backend, shots=shots)
     result = job.result()
@@ -204,15 +201,14 @@ def quantum_module(angle, measure):
         counts_11 = 0
 
 
-    print("COUNTS: ", counts)
     if measure == 'ZZ':
         expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
     elif measure == 'XX':
-        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
+        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
     elif measure == "YY":
-        expected_value = (counts_00 + counts_01 + counts_10 - counts_11) / shots
+        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
     elif measure == "II":
-        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
+        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
     else:
         raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')    
 
@@ -254,17 +250,16 @@ def hamiltonian_operator(a, b, c, d):
     return WeightedPauliOperator.from_dict(pauli_dict)
 
 def vqe(angle):
-
     pauli_dict = pauli_operator_to_dict(H)        
     # quantum_modules
     print("MEASURE 'II'")
-    quantum_module_I = pauli_dict['II'] * quantum_module(angle, 'II')
+    quantum_module_I = 0.5 * 1
     print("MEASURE 'ZZ'")
-    quantum_module_Z = pauli_dict['ZZ'] * quantum_module(angle, 'ZZ')
+    quantum_module_Z = 0.5 * quantum_module(angle, 'ZZ')
     print("MEASURE 'XX'")
-    quantum_module_X = pauli_dict['XX'] * quantum_module(angle, 'XX')
+    quantum_module_X = -0.5 * quantum_module(angle, 'XX')
     print("MEASURE 'YY'")
-    quantum_module_Y = pauli_dict['YY'] * quantum_module(angle, 'YY')
+    quantum_module_Y = -0.5 * quantum_module(angle, 'YY')
     # summing the measurement results
     classical_adder = quantum_module_I + quantum_module_Z + quantum_module_X + quantum_module_Y
     print("Measured ground state: ", classical_adder)
