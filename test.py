@@ -108,14 +108,10 @@ def quantum_state_preparation(angle, circuit):
     '''
     # first parameter is RX angle
     # can use np format: np.array([np.pi, np.pi])
-
     circuit.rx(angle, 0)
-    circuit.ry(np.pi/2, 0)
     circuit.h(0)
-    circuit.cx(0,1) 
-    circuit.h(1) 
-    circuit.cx(1,0) 
-
+    circuit.cx(0,1)
+    circuit.h(1)
     return circuit
 
 
@@ -167,7 +163,6 @@ def vqe_circuit(angle, measure):
 def quantum_module(angle, measure):
     # measure
     if measure == 'II':
-        print("Expectation value for pauli matrix ({}): {}".format(measure, "1"))
         return 1
     elif measure == 'ZZ':
         #circuit = vqe_circuit(parameters, 'Z')
@@ -187,45 +182,37 @@ def quantum_module(angle, measure):
     job = execute(circuit, backend, shots=shots)
     result = job.result()
     counts = result.get_counts()
-    
-    # expectation value estimation from counts
-    # expectation_value = 0
-    # for measure_result in counts:
-    #     sign = +1
-    #     if measure_result == '1':
-    #         sign = -1
-    #     expectation_value += sign * counts[measure_result] / shots
 
     if counts.get('00'):
-        counts_00 = counts['00']/shots
+        counts_00 = counts['00']
     else:
         counts_00 = 0
 
     if counts.get('01'):
-        counts_01 = counts['01']/shots
+        counts_01 = counts['01']
     else:
         counts_01 = 0    
 
     if counts.get('10'):
-        counts_10 = counts['10']/shots
+        counts_10 = counts['10']
     else:
         counts_10 = 0
 
     if counts.get('11'):
-        counts_11 = counts['11']/shots
+        counts_11 = counts['11']
     else:
         counts_11 = 0
 
 
     print("COUNTS: ", counts)
     if measure == 'ZZ':
-        expected_value = counts_00 - counts_01 - counts_10 + counts_11
+        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
     elif measure == 'XX':
-        expected_value = counts_00 + counts_01 + counts_10 + counts_11
+        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
     elif measure == "YY":
-        expected_value = counts_00 + counts_01 + counts_10 + counts_11
+        expected_value = (counts_00 + counts_01 + counts_10 - counts_11) / shots
     elif measure == "II":
-        expected_value = counts_00 + counts_01 + counts_10 + counts_11
+        expected_value = (counts_00 + counts_01 + counts_10 + counts_11) / shots
     else:
         raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')    
 
@@ -278,18 +265,10 @@ def vqe(angle):
     quantum_module_X = pauli_dict['XX'] * quantum_module(angle, 'XX')
     print("MEASURE 'YY'")
     quantum_module_Y = pauli_dict['YY'] * quantum_module(angle, 'YY')
-    
     # summing the measurement results
     classical_adder = quantum_module_I + quantum_module_Z + quantum_module_X + quantum_module_Y
     print("Measured ground state: ", classical_adder)
     return classical_adder
-
-#[0.5, -0.5, -0.5, 0.5] 
-#[Tensor(Identity(wires=[0]), Identity(wires=[1])), 
-# Tensor(PauliX(wires=[0]), PauliX(wires=[1])), 
-# Tensor(PauliY(wires=[0]), PauliY(wires=[1])), 
-# Tensor(PauliZ(wires=[0]), PauliZ(wires=[1]))]
-
 
 a, b, c, d = (0.5, 0.5, -0.5, -0.5)
 
@@ -297,7 +276,7 @@ H = hamiltonian_operator(a, b, c, d)
 print("H: ", H.print_details())
 parameters_array = np.array([np.pi, np.pi])
 
-angle_range = np.linspace(0.0, 2 * np.pi, 20)
+angle_range = np.linspace(0, 2 * np.pi, 20)
 print("range: ", angle_range)
 data = []
 for a in angle_range: 

@@ -4,9 +4,7 @@ from pyquil.gates import *
 
 qvm = api.QVMConnection()
 def smallish_ansatz(params):
-    return Program(RX(params[0], 0), RX(params[0], 1), CNOT(0,1), H(0), CNOT(1,0), H(1))
-
-print(smallish_ansatz([1.0, 2.0]))
+    return Program(RX(params[0], 0))
 
 
 from pyquil.paulis import *
@@ -30,8 +28,14 @@ angle_range = np.linspace(0.0, 2 * np.pi, 20)
 data = [vqe_inst.expectation(smallish_ansatz([angle]), hamiltonian, None, qvm)
         for angle in angle_range]
 
-import matplotlib.pyplot as plt
-plt.xlabel('Angle [radians]')
-plt.ylabel('Expectation value')
-plt.plot(angle_range, data)
-plt.show()
+# import matplotlib.pyplot as plt
+# plt.xlabel('Angle [radians]')
+# plt.ylabel('Expectation value')
+# plt.plot(angle_range, data)
+# plt.show()
+
+initial_angle = [0.0]
+result = vqe_inst.vqe_run(smallish_ansatz, hamiltonian, initial_angle, None, qvm=qvm)
+
+print("\nMinimum energy= ", round(result["fun"], 4))
+print("Best Angle = ", round(result["x"][0], 4))
