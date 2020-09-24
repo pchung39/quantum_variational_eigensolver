@@ -6,7 +6,7 @@ import numpy as np
 from random import random
 from scipy.optimize import minimize
 import math
-# import pennylane as qml
+import pennylane as qml
 # from pennylane import numpy as np
 from qiskit.extensions import HamiltonianGate
 import numpy as np
@@ -71,6 +71,7 @@ def decompose_hamiltonian(H):
 
     for term in itertools.product(paulis, repeat=n):
         matrices = [i._matrix() for i in term]
+
         coeff = np.trace(functools.reduce(np.kron, matrices) @ H) / N
         coeff = np.real_if_close(coeff).item()
 
@@ -91,11 +92,11 @@ def decompose_hamiltonian(H):
 
 
 
-# a = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
-# a = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+a = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
+a = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
-# coeffs, obs = decompose_hamiltonian(a)
-# print(coeffs, obs)
+coeffs, obs = decompose_hamiltonian(a)
+print(coeffs, obs)
 
 def quantum_state_preparation(angle, circuit):
     #q = circuit.qregs[0] # q is the quantum register where the info about qubits is stored
@@ -174,7 +175,7 @@ def quantum_module(angle, measure):
         raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')
     
     # TODO: tweak this to see if values change?
-    shots = 10000
+    shots = 1000
     backend = BasicAer.get_backend('qasm_simulator')
     job = execute(circuit, backend, shots=shots)
     result = job.result()
@@ -200,17 +201,17 @@ def quantum_module(angle, measure):
     else:
         counts_11 = 0
 
-
-    if measure == 'ZZ':
-        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
-    elif measure == 'XX':
-        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
-    elif measure == "YY":
-        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
-    elif measure == "II":
-        expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
-    else:
-        raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')    
+    expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
+    # if measure == 'ZZ':
+    #     expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
+    # elif measure == 'XX':
+    #     expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
+    # elif measure == "YY":
+    #     expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
+    # elif measure == "II":
+    #     expected_value = (counts_00 - counts_01 - counts_10 + counts_11) / shots
+    # else:
+    #     raise ValueError('Not valid input for measurement: input should be "I" or "X" or "Z" or "Y"')    
 
     print("Expectation value for pauli matrix ({}): {}".format(measure,expected_value))
     return expected_value
@@ -265,28 +266,55 @@ def vqe(angle):
     print("Measured ground state: ", classical_adder)
     return classical_adder
 
-a, b, c, d = (0.5, 0.5, -0.5, -0.5)
+# a, b, c, d = (0.5, 0.5, -0.5, -0.5)
 
-H = hamiltonian_operator(a, b, c, d)
-print("H: ", H.print_details())
-parameters_array = np.array([np.pi, np.pi])
+# H = hamiltonian_operator(a, b, c, d)
+# print("H: ", H.print_details())
+# parameters_array = np.array([np.pi, np.pi])
 
-angle_range = np.linspace(0, 2 * np.pi, 20)
-print("range: ", angle_range)
-data = []
-for a in angle_range: 
-    print("Angle: ", a)
-    test_vqe = vqe(a)
-    data.append(test_vqe)
-    print("\n\n")
+# angle_range = np.linspace(0, 2 * np.pi, 20)
+# print("range: ", angle_range)
+# data = []
+# for a in angle_range: 
+#     print("Angle: ", a)
+#     test_vqe = vqe(a)
+#     data.append(test_vqe)
+#     print("\n\n")
 
-print("DATA: ", data)
-import matplotlib.pyplot as plt
-plt.xlabel('Angle [radians]')
-plt.ylabel('Expectation value')
-plt.plot(angle_range, data)
-plt.show()
+# print("DATA: ", data)
+# import matplotlib.pyplot as plt
+# plt.xlabel('Angle [radians]')
+# plt.ylabel('Expectation value')
+# plt.plot(angle_range, data)
+# plt.show()
+
 # tol = 1e-3 # tolerance for optimization precision.
 # vqe_result = minimize(vqe, parameters_array, method="Powell", tol=tol)
 # print('The exact ground state energy is: {}'.format(reference_energy))
 # print('The estimated ground state energy from VQE algorithm is: {}'.format(vqe_result.fun))
+
+
+
+
+# Architecture 
+
+"""
+Create a class VQE(object)
+
+1. What functions 
+
+    - first, decompose hamiltonian
+    - create ansatz
+    - post ansatz rotations 
+    - measure circuit 
+    - calcuate decomposed hamiltonian
+    - return ground state
+    - use an if __name__ == "__main__":
+        execute task 4 task 
+
+Good to have:
+    - ability to graph the angles + minimum energy state 
+    - deep dive into optimizers 
+    - noise model and how it affects
+
+"""
