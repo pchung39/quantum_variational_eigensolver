@@ -18,20 +18,29 @@ import matplotlib.pyplot as plt
 from qiskit.tools.visualization import plot_histogram
 import matplotlib.pyplot as plt
 from qiskit.providers.aer import noise
+from qiskit.providers.aer.noise.errors import pauli_error, depolarizing_error
+
 
 class VQE(object): 
 
-    def __init__(self, hamiltonian_operator, shots, noise=None, graph=False):
-        self.graph = graph
+    def __init__(self, shots, noise=None):
         self.angle = 0
         self.shots = shots
         self.noise = noise
+        self.vqe_info = {
+            "estimated_energy": {},
+            "simulator_results": {},
+            "decomposed_hamiltonian": {}
+        }
+
+    def return_vqe_info(self):
+
+        return self.vqe_info
 
     @staticmethod
     def run_classical_eigensolver(a, b, c, d):
         """
-        Creates a*I + b*Z + c*X + d*Y pauli sum 
-        that will be our Hamiltonian operator.
+        Creates Hamiltonian operator.
         
         """
         pauli_dict = {
@@ -43,14 +52,12 @@ class VQE(object):
         }
         return WeightedPauliOperator.from_dict(pauli_dict)
 
-
-
-    # a, b, c, d = (0.5, 0.5, -0.5, -0.5)
-    # H = hamiltonian_operator(a, b, c, d)
-    # print("H: ", H.print_details())
-    # exact_result = NumPyEigensolver(H).run()
-    # reference_energy = min(np.real(exact_result.eigenvalues))
-    # print('The exact ground state energy is: {}'.format(reference_energy))    
+        H = hamiltonian_operator(a, b, c, d)
+        print("H: ", H.print_details())
+        exact_result = NumPyEigensolver(H).run()
+        reference_energy = min(np.real(exact_result.eigenvalues))
+        print('The exact ground state energy is: {}'.format(reference_energy))    
+        # self.vqe_info["analytical_result"] = exact_result
 
     @staticmethod
     def decompose_hamiltonian(self, hermitian_matrix):
@@ -87,6 +94,8 @@ class VQE(object):
             pauli_matrix_tensored = np.kron(matrix_entry, matrix_entry)
             pauli_coefficients["{}".format(matrix+matrix)] = 0.25 * np.trace(np.matmul(pauli_matrix_tensored, hermitian_matrix))
 
+        self.return_object["decomposed_hamiltonian"] = pauli_coefficients
+        
         return pauli_coefficients
 
     def generate_circuit(self, measurement_axis):
@@ -136,27 +145,11 @@ class VQE(object):
         result = job.result()
         return result
 
-    # def create_bar_graph(self, counts, axis):
-
-    #     outcomes = []
-    #     shots = []
-
-    #     for o, s in counts.items():
-    #         outcomes.append(o)
-    #         shots.append(s)
-        
-    #     plt.bar(outcomes, shots)
-    #     plt.title("Outcomes for measurements in axis {}".format(axis))
-    #     plt.show()
-
-
 
     def calculate_expectation_values(self, measurement_results, axis):
 
         counts = measurement_results.get_counts()
-
-        # TODO: inspect the affect of noise
-        # self.create_bar_graph(counts, axis)
+        self.vqe_info["simulator_results"][str(self.angle)][axis] = counts
 
         if counts.get('00'):
             counts_00 = counts['00']
@@ -211,43 +204,20 @@ class VQE(object):
             err_prob = error_info["error_prob"]
             #print("error prob: ", err_prob)
             # Error probabilities
-            prob_1 = 0.01 # 1-qubit gate
-            prob_2 = 0.01   # 2-qubit gate
 
             # Depolarizing quantum errors
             error_1 = noise.depolarizing_error(err_prob, 1)
             error_2 = noise.depolarizing_error(err_prob, 2)
 
+            # error_meas = pauli_error([('Z',err_prob), ('I', 1 - err_prob)])
+
             # Add errors to noise model
             noise_model = noise.NoiseModel()
-            noise_model.add_all_qubit_quantum_error(error_1, ['rx', 'ry', 'rz'])
+            noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
+            #noise_model.add_all_qubit_quantum_error(error_meas, "measure") # measurement error is applied to measurements
+
             #noise_model.add_all_qubit_quantum_error(error_1, ['h'])
             #noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
-
-        # for gate, error_info in self.noise.items():
-
-        #     err_prob = error_info["error_prob"]
-        #     error = noise.depolarizing_error(err_prob, 1)
-        #     noise_model.add_all_qubit_quantum_error(error, ['rz'])
-            # noise_model.add_all_qubit_quantum_error(error, ['ry'], [1])
-            # noise_model.add_nonlocal_quantum_error(error, ['cx'], [1], [2])
-            # if gate == "cx":
-            #     error = noise.depolarizing_error(err_prob, 2)
-            # else:
-            #     error = noise.depolarizing_error(err_prob, 1)
-
-            # if error_info["error_type"] == "general_error":
-            #     noise_model.add_all_qubit_quantum_error(error, [gate])
-            # elif error_info["error_type"] == "non_local":
-            #     noise_model.add_nonlocal_quantum_error(error,instructions=[gate], qubits=[0], noise_qubits=[2])
-            # else:
-            #     raise Exception("Error type must either be one of the following: ['general_error', 'non_local']")
-
-
-        # TODO: compare these graphs - one qubit gate vs a two-qubit gate. 
-        # rotation vs a hadamard
-        # what can we infer about the nature of noise and how it decoheres and affects the accuracy of retrieving the ground state measurement?
-        # Does noise to a 2 qubit gate affect the outcome MORE than a one qubit gate?
 
         return noise_model
 
@@ -259,35 +229,22 @@ class VQE(object):
         # angle_range = [np.pi]
         for angle in angle_range: 
             self.angle = angle
+            self.vqe_info["simulator_results"][str(angle)] = {}
             measurement = self.sum_decomposed_hamiltonian()
             measurements.append(measurement)
+            self.vqe_info["estimated_energy"][str(angle)] = measurement
+
 
         print("Ground state: {}".format(min(measurements)))
-        print("Angle (theta) for ground state: ")
-
-        if self.graph:
-            plt.xlabel('Angle [radians]')
-            plt.ylabel('Expectation value')
-            plt.plot(angle_range, measurements)
-            plt.show()
+        print("Angle (theta) for ground state: ", min(self.vqe_info["estimated_energy"], key=self.vqe_info["estimated_energy"].get))
+        self.vqe_info["vqe_ground_state"] = min(measurements)
+        self.vqe_info["ground_state_theta"] = min(self.vqe_info["estimated_energy"], key=self.vqe_info["estimated_energy"].get)
         
         return measurements
 
-        
-    
-# if __name__ == "__main__":
 
-#     probabilities = [0, 0.1, 0.3, 0.5, 0.7]
-#     angle_range = np.linspace(0, 2 * np.pi, 20)
-#     m_list = []
-#     for error_prob in probabilities:
-#         noise_instructions = {
-#                 "y": {
-#                     "error_type": "non_local",
-#                     "error_prob": error_prob
-#                 }
+if __name__ == "__main__":
 
-#             }
-#         vqe = VQE(hamiltonian_operator=1, shots=1000, noise=noise_instructions, graph=False)
-#         final_measurements = vqe.find_ground_state()
-#         m_list.append(final_measurements)
+    vqe = VQE(shots=1000)
+    final_measurements = vqe.find_ground_state()
+    print(vqe.return_vqe_info())
