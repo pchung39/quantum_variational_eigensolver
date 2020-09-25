@@ -136,18 +136,18 @@ class VQE(object):
         result = job.result()
         return result
 
-    def create_bar_graph(self, counts, axis):
+    # def create_bar_graph(self, counts, axis):
 
-        outcomes = []
-        shots = []
+    #     outcomes = []
+    #     shots = []
 
-        for o, s in counts.items():
-            outcomes.append(o)
-            shots.append(s)
+    #     for o, s in counts.items():
+    #         outcomes.append(o)
+    #         shots.append(s)
         
-        plt.bar(outcomes, shots)
-        plt.title("Outcomes for measurements in axis {}".format(axis))
-        plt.show()
+    #     plt.bar(outcomes, shots)
+    #     plt.title("Outcomes for measurements in axis {}".format(axis))
+    #     plt.show()
 
 
 
@@ -156,7 +156,7 @@ class VQE(object):
         counts = measurement_results.get_counts()
 
         # TODO: inspect the affect of noise
-        self.create_bar_graph(counts, axis)
+        # self.create_bar_graph(counts, axis)
 
         if counts.get('00'):
             counts_00 = counts['00']
@@ -206,13 +206,29 @@ class VQE(object):
 
         noise_model = noise.NoiseModel()
 
-
-
         for gate, error_info in self.noise.items():
 
             err_prob = error_info["error_prob"]
-            error = noise.depolarizing_error(err_prob, 1)
-            noise_model.add_all_qubit_quantum_error(error, ['rx'])
+            #print("error prob: ", err_prob)
+            # Error probabilities
+            prob_1 = 0.01 # 1-qubit gate
+            prob_2 = 0.01   # 2-qubit gate
+
+            # Depolarizing quantum errors
+            error_1 = noise.depolarizing_error(err_prob, 1)
+            error_2 = noise.depolarizing_error(err_prob, 2)
+
+            # Add errors to noise model
+            noise_model = noise.NoiseModel()
+            noise_model.add_all_qubit_quantum_error(error_1, ['rx', 'ry', 'rz'])
+            #noise_model.add_all_qubit_quantum_error(error_1, ['h'])
+            #noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
+
+        # for gate, error_info in self.noise.items():
+
+        #     err_prob = error_info["error_prob"]
+        #     error = noise.depolarizing_error(err_prob, 1)
+        #     noise_model.add_all_qubit_quantum_error(error, ['rz'])
             # noise_model.add_all_qubit_quantum_error(error, ['ry'], [1])
             # noise_model.add_nonlocal_quantum_error(error, ['cx'], [1], [2])
             # if gate == "cx":
@@ -240,13 +256,14 @@ class VQE(object):
         measurements = []
 
         angle_range = np.linspace(0, 2 * np.pi, 20)
+        # angle_range = [np.pi]
         for angle in angle_range: 
             self.angle = angle
             measurement = self.sum_decomposed_hamiltonian()
             measurements.append(measurement)
 
         print("Ground state: {}".format(min(measurements)))
-        print("Angle for ground state: ")
+        print("Angle (theta) for ground state: ")
 
         if self.graph:
             plt.xlabel('Angle [radians]')
