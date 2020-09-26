@@ -1,5 +1,4 @@
-scipy>=1.5.2
 qiskit>=0.20.1
 numpy>=1.19.2
-quantum-grove
-pyquil
+scikit-quant>=0.7.0
+matplotlib>=3.3.2
