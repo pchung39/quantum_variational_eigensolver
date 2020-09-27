@@ -1,13 +1,8 @@
 import numpy as np
-import numpy as np
-import itertools
-from itertools import product
-from operator import matmul
 import functools
 from qiskit import *
 import matplotlib.pyplot as plt
 from qiskit.tools.visualization import plot_histogram
-import matplotlib.pyplot as plt
 from qiskit.providers.aer.noise import NoiseModel, pauli_error, depolarizing_error
 from skquant.opt import minimize
 from vqe import VQE
@@ -83,8 +78,3 @@ class ClassicalOptimizer(object):
         plt.legend()
         plt.show()
 
-
-# c = ClassicalOptimizer()
-# n = c.define_noise_model(0.3, 1, ["rx", "h"])
-# c.run_optimizer(angle_range=np.linspace(0, 2 * np.pi, 20), noise_model=n, optimizer="imfil")
-# c.create_graph()
