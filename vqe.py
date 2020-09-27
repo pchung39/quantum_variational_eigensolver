@@ -152,7 +152,7 @@ class VQE(object):
 
         return expected_value
 
-    def measure_in_axis(self, axis):
+    def measure_hamiltonian(self, axis):
 
         '''
         This method is a wrapper around the functions that need to be executed in order to 
@@ -173,9 +173,9 @@ class VQE(object):
         '''
 
         self.angle = float(angle)
-        x_measurement = -0.5 * (self.measure_in_axis("X"))
-        y_measurement = -0.5 * (self.measure_in_axis("Y"))
-        z_measurement = 0.5 * (self.measure_in_axis("Z"))
+        x_measurement = -0.5 * (self.measure_hamiltonian("X"))
+        y_measurement = -0.5 * (self.measure_hamiltonian("Y"))
+        z_measurement = 0.5 * (self.measure_hamiltonian("Z"))
         i_measurement = 0.5 * 1
 
         energy_state = x_measurement + y_measurement + z_measurement + i_measurement
