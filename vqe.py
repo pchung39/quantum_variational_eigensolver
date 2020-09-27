@@ -94,7 +94,7 @@ class VQE(object):
         circuit.barrier()
 
         '''
-        Post rotations (For calculating in X and Y axis)
+        Pre-measurement rotations (For calculating in X and Y axis)
         '''
         if measurement_axis == 'X':
             circuit.ry(-np.pi/2, q[0])
