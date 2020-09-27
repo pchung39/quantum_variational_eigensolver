@@ -77,6 +77,8 @@ class VQE(object):
         This method is responsible for generating the quantum circuit that will execute the vqe algorithm. 
 
         '''
+        if measurement_axis not in ["X", "Y", "Z"]:
+            raise Exception("Unknown measurement axis was provided: {}".format(measurement_axis))
 
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
