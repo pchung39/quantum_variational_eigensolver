@@ -24,7 +24,7 @@ class VQE(object):
 
     def return_vqe_info(self):
 
-        return json.dumps(self.vqe_info, indent=4)
+        return self.vqe_info
 
 
     def run_classical_eigensolver(self, a, b, c, d):
@@ -121,10 +121,9 @@ class VQE(object):
         '''
 
         if self.noise:
-            noise_model = self.noise_model()
             backend = Aer.get_backend('qasm_simulator')
             job = execute(circuit, backend, shots=self.shots, 
-                          basis_gates=noise_model.basis_gates, noise_model=noise_model)
+                          basis_gates=self.noise.basis_gates, noise_model=self.noise)
         else:
             backend = Aer.get_backend('qasm_simulator')
             job = execute(circuit, backend, shots=self.shots)
@@ -193,7 +192,7 @@ class VQE(object):
         measurements = []
 
         for angle in self.angle_range: 
-            measurement = self.get_energy_state([angle])
+            measurement = self.get_energy_state(angle)
             measurements.append(measurement)
             self.vqe_info["estimated_energy"][str(angle)] = measurement
 
