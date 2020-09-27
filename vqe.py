@@ -131,7 +131,6 @@ class VQE(object):
         result = job.result()
         return result
 
-    # TODO: is "measure in x axis a proper description? "
 
     def calculate_expectation_values(self, measurement_results, axis):
         '''
@@ -155,7 +154,7 @@ class VQE(object):
 
         '''
         This method is a wrapper around the functions that need to be executed in order to 
-        produce an expectation value. 
+        produce an expectation value for the given pauli matrix
         '''
 
         circuit = self.generate_circuit(axis)
@@ -208,7 +207,6 @@ class VQE(object):
 
 
 if __name__ == "__main__":
-    ham = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
     vqe = VQE(angle_range=np.linspace(0, 2 * np.pi, 20))
     vqe.find_ground_state()
-    print(vqe.return_vqe_info())
+
