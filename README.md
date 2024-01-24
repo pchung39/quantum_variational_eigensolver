@@ -1,10 +1,6 @@
-# QOSF Mentorship 2020
+# Quantum Variational Eigensolver
 
-Thanks for taking time to view my solution for the task! Details regarding the implementation of this task is contained in the Jupyter notebook - `vqe.ipynb`. (All hand drawn images are my own! :))
-
-## QOSF Mentorship 2020 Application Task 4 Overview
-
-Task 4 had applicants create a VQE (Variational Quantum Eigensolver) circuit from scratch. With this home-made VQE circuit applicants must find the lowest eigenvalue state of the following matrix:
+Create a VQE (Variational Quantum Eigensolver) circuit from scratch. With this home-made VQE circuit applicants must find the lowest eigenvalue state of the following matrix:
 
 ![Matrix](./images/matrix.png)
 
